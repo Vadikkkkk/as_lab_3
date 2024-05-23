@@ -11,7 +11,6 @@
 
 using namespace std;
 
-
 const int NUM_DISKS = 7;
 const int MESSAGE_SIZE = 12; // Размер сообщения в байтах
 const int BLOCK_SIZE = MESSAGE_SIZE / (NUM_DISKS - 1); // Размер блока данных в байтах
@@ -205,17 +204,17 @@ void read_from_disk(const int& address){
         }
     }
     if (missing_disks.size() > 1 || result.length() < 10){
-        std::cout << "Data cannot be restored!" << endl;
+        cout << "Data cannot be restored! There are too many damaged disks!" << endl;
     }
     else if(missing_disks.size() == 0){//все на месте
         result.erase(result.length() - 2, 2);
-        std::cout << "Message - " << result << endl;
+        cout << "Message - " << result << endl;
     }
     else{
         poly(missing_disks[0], result);
         write_full_data(address, result);
         result.erase(result.length() - 2, 2);
-        std::cout << "Message - " << result << endl;
+        cout << "Disk" << missing_disks[0] << " was damaged!" << endl << "Message - " << result << endl;
     }
 }
 
