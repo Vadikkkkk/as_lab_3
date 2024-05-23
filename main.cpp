@@ -18,6 +18,13 @@ const int BLOCK_SIZE = MESSAGE_SIZE / (NUM_DISKS - 1); // Размер блок�
 const string DISK_PREFIX = "disk";
 const int DISK_CAPACITY = 64;
 
+void menu(){
+    cout << "Option Parameters: " << endl << "1. Message length = " << MESSAGE_SIZE << endl <<
+    "2. Disk capacity = " << DISK_CAPACITY << endl << "3. Number of disks = " << NUM_DISKS << endl;
+
+    cout << "Commands available :" << endl << "1. <address> write <data>" << endl << "2. <address> read" << endl <<
+    "3. exit " << endl << endl;
+}
 
 int hexStringToInt(const string& hexStr) {
     int value;
@@ -104,7 +111,7 @@ void write_on_disk(const int& _address, const string& _data){
     }
 
     outFile.close();
-
+    cout << "The data has been successfully recorded!" << endl; 
 }
 
 void read_from_disk(const int& address){
@@ -144,10 +151,10 @@ void read_from_disk(const int& address){
     }
     else if(missing_disks.size() == 0){//все на месте
         result.erase(result.length() - 2, 2);
-        cout << result << endl;
+        cout << "Message - " << result << endl;
     }
     else if(missing_disks[0] == 6){ //отсутствует диск проверки
-        cout << result << endl;
+        cout << "Message - " << result << endl;
         int rs = 0;
         vector<int> ms;
         for (size_t i = 0; i < result.length(); i += 2) {
@@ -232,16 +239,18 @@ void read_from_disk(const int& address){
         
         result.erase(result.length() - 2, 2);
         result.insert(2 * missing_disks[0], new_data);
-        cout << result << endl;
+        cout << "Message - " << result << endl;
 
     }
 }
 
 int main (){
     
+    menu();
     string input;
     regex writeRegex("^\\s*(\\d{1,2})\\s+(write)\\s+([0-9a-fA-F]{12})\\s*$");
     regex readRegex("^\\s*(\\d{1,2})\\s+read\\s*$");
+    regex exitRegex("exit", regex_constants::icase);
     
     while(true){
         cout << "Enter command : ";
@@ -253,7 +262,7 @@ int main (){
             int address = stoi(match[1]);
             string data = match[3];
             if (address < 0 || address > DISK_CAPACITY - 1) {
-                cout << "Adress out of range!" << endl;
+                cout << "Adress out of range! Valid value - 0 to " << DISK_CAPACITY << endl;
                 continue;  // Пропускаем текущую итерацию цикла
             }
             write_on_disk(address, data);
@@ -261,17 +270,18 @@ int main (){
         else if (regex_match(input, match, readRegex)){ //проверка, если чтение
             int address = stoi(match[1]);
             if (address < 0 || address > DISK_CAPACITY - 1) {
-                cout << "Adress out of range!" << endl;
+                cout << "Adress out of range! Valid value - 0 to " << DISK_CAPACITY << endl;
                 continue;  // Пропускаем текущую итерацию цикла
             }
             read_from_disk(address);
+
+        }
+        else if (regex_match(input, match, exitRegex)){
+            break;
         }
         else{
-            cout << "Incorrect input! Try again!" << endl;
+            cout << "Unknown command! Try again!" << endl;
         }
-       if (input == "exit"){
-            break;
-       }
     }
     return 0;
 }
