@@ -9,6 +9,7 @@
 #include <regex>
 #include <algorithm>
 
+
 using namespace std;
 
 const int NUM_DISKS = 7;
@@ -24,7 +25,9 @@ void menu(){
     "2. Disk capacity = " << DISK_CAPACITY << endl << "3. Number of disks = " << NUM_DISKS << endl << endl;
 
     cout << "Commands available :" << endl << "1. <address> write <data>" << endl << "2. <address> read" << endl <<
-    "3. exit " << endl << endl;
+    "3. exit " << endl 
+     << "Data is a " << MESSAGE_SIZE << " digit hexadecimal number. Eхаmple of commands: "<< endl <<
+     "12 write 124ab23df400" << endl << "12 read" << endl << endl;
 }
 
 void input(){
@@ -36,7 +39,6 @@ void input(){
     while(true){
         cout << "Enter command : ";
         getline(cin, input);
-
         smatch match;
         if (regex_match(input, match, writeRegex)) { //проверка, если запись 
             // Извлечение числа, команды и данных из ввода
@@ -101,7 +103,7 @@ void write_full_data(int address, const string& _data){
     vector<string> blocks;
     for (int i = 0; i < NUM_DISKS; i++){
         string filename = DISK_PREFIX + to_string(i);
-        blocks.push_back(_data.substr(i * 2, 2));
+        blocks.push_back(_data.substr(i * BLOCK_SIZE, BLOCK_SIZE));
         ifstream inFile(filename);
         vector<string> lines;
         string line;
@@ -124,7 +126,6 @@ void write_full_data(int address, const string& _data){
         for (int i = 0; i < lines.size(); i++) {
             outFile << lines[i] << "\n";
         }
-
         outFile.close();
     }
     
@@ -134,21 +135,21 @@ void poly(int missing_disk, string& data){
     int rs = 0;
     if(missing_disk == NUM_DISKS - 1){//если последнего нет
         for (int i = 0; i < NUM_DISKS - 1; i++){
-            rs += hexStringToInt(data.substr(i * 2, 2));
+            rs += hexStringToInt(data.substr(i * BLOCK_SIZE, BLOCK_SIZE));
         }
         string redundancy = intToHexString(rs);
-        if (redundancy.length() < 2){
-            redundancy.insert(0, 2 - redundancy.length(), '0');
+        if (redundancy.length() < BLOCK_SIZE){
+            redundancy.insert(0, BLOCK_SIZE - redundancy.length(), '0');
         }
-        else if(redundancy.length() > 2){
+        else if(redundancy.length() > BLOCK_SIZE){
             redundancy.substr(redundancy.length() - 2);
         }
         data += redundancy;
     }
     else{//если нет одного
         vector<string> blocks;
-        for (int i = 0; i < data.length(); i += 2){
-            blocks.push_back(data.substr(i, 2));
+        for (int i = 0; i < data.length(); i += BLOCK_SIZE){
+            blocks.push_back(data.substr(i, BLOCK_SIZE));
         }
         for(int i = 0; i < blocks.size() - 1; i++){
             rs -= hexStringToInt(blocks[i]);
@@ -156,14 +157,13 @@ void poly(int missing_disk, string& data){
         rs += hexStringToInt(blocks.back());
 
         string new_data = intToHexString(rs);
-        if (new_data.length() < 2){
-            new_data.insert(0, 2 - new_data.length(), '0');
+        if (new_data.length() < BLOCK_SIZE){
+            new_data.insert(0, BLOCK_SIZE - new_data.length(), '0');
         }
-        else if (new_data.length() > 2){
-            new_data.substr(new_data.length() - 2);
+        else if (new_data.length() > BLOCK_SIZE){
+            new_data.substr(new_data.length() - BLOCK_SIZE);
         }
-        //new_data вставить  в нужное место строки 
-        data.insert(2 * missing_disk, new_data);
+        data.insert(BLOCK_SIZE * missing_disk, new_data);
     }
     return;
 }
@@ -171,10 +171,11 @@ void poly(int missing_disk, string& data){
 void write_on_disk(const int& _address,string& _data){
     poly(NUM_DISKS - 1, _data);
     write_full_data(_address, _data);
+    cout << "Message was successfully recorded!" << endl << endl; 
 }
 
 void read_from_disk(const int& address){
-    string result;
+    string result = "";
     vector<int> missing_disks;
     for (int i = 0; i < NUM_DISKS; i++){
         string filename = DISK_PREFIX + to_string(i);
@@ -200,21 +201,26 @@ void read_from_disk(const int& address){
             file.close();
         }
         else{
-            cerr << "Cant open file!" << filename;
+            ofstream File(filename);
+            for (int i = 0; i < DISK_CAPACITY; i++){
+            File << "\n";
+            }
+            File.close();
+            missing_disks.push_back(i);
         }
     }
     if (missing_disks.size() > 1 || result.length() < 10){
-        cout << "Data cannot be restored! There are too many damaged disks!" << endl;
+        cout << "Data cannot be restored! There are too many damaged disks!" << endl << endl;
     }
     else if(missing_disks.size() == 0){//все на месте
-        result.erase(result.length() - 2, 2);
-        cout << "Message - " << result << endl;
+        result.erase(result.length() - BLOCK_SIZE, BLOCK_SIZE);
+        cout << "Message - " << result << endl << endl;
     }
     else{
         poly(missing_disks[0], result);
         write_full_data(address, result);
-        result.erase(result.length() - 2, 2);
-        cout << "Disk" << missing_disks[0] << " was damaged!" << endl << "Message - " << result << endl;
+        result.erase(result.length() - BLOCK_SIZE, BLOCK_SIZE);
+        cout << "Disk" << missing_disks[0] << " was damaged!" << endl << "Message - " << result << endl << endl;
     }
 }
 
